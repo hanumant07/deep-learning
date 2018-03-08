@@ -4,9 +4,10 @@ import os
 import pandas as pd
 import numpy as np
 
-from replay_buffer import ReplayBuffer
-from ounoise import Ounoise
-from quad_controller_rl.agents.base_agent import DDPG
+from quad_controller_rl import util
+from quad_controller_rl.agents.ounoise import OUNoise
+from quad_controller_rl.agents.replay_buffer import ReplayBuffer
+from quad_controller_rl.agents.base_agent import BaseAgent
 from keras import layers, models, optimizers
 from keras import backend as K
 
@@ -25,9 +26,10 @@ class Actor:
         """
         self.state_size = state_size
         self.action_size = action_size
+        self.action_size = action_size
         self.action_low = action_low
         self.action_high = action_high
-        self.action_range = self.action_high - self.action_low
+        self.action_range = (self.action_high - self.action_low)
 
         # Initialize any other variables here
 
@@ -139,9 +141,10 @@ class DDPG(BaseAgent):
 
         self.state_size = 3
         self.action_size = 3
+        self.state_range = self.task.observation_space.high - self.task.observation_space.low
         # Actor (Policy) Model
-        self.action_low = self.task.action_space.low
-        self.action_high = self.task.action_space.high
+        self.action_low = self.task.action_space.low[0:3]
+        self.action_high = self.task.action_space.high[0:3]
         self.actor_local = Actor(self.state_size, self.action_size, self.action_low, self.action_high)
         self.actor_target = Actor(self.state_size, self.action_size, self.action_low, self.action_high)
 
@@ -164,7 +167,6 @@ class DDPG(BaseAgent):
         # Algorithm parameters
         self.gamma = 0.99  # discount factor
         self.tau = 0.001  # for soft update of target parameters
-        self.state_size = np.prod(self.task.observation_space.shape)
 
         # Save episode stats
         self.stats_filename = os.path.join(util.get_param('out'),
@@ -203,32 +205,29 @@ class DDPG(BaseAgent):
     def step(self, state, reward, done):
         # Transform state vector
         state = (state - self.task.observation_space.low) / self.state_range  # scale to [0.0, 1.0]
-        state = state.preprocess(state) # convert to row vector
+        state = self.preprocess_state(state) # convert to row vector
 
         # Choose an action
         action = self.act(state)
         
-        # Save experience / reward
-        if self.last_state is not None and self.last_action is not None:
-
 
         # Learn, if at end of episode
         # Save experience / reward
         if self.last_state is not None and self.last_action is not None:
             self.memory.add(self.last_state, self.last_action, reward, state, done)
-   			self.total_reward += reward
+            self.total_reward += reward
             self.count += 1
-        ...
+
         # Learn, if enough samples are available in memory
         if len(self.memory) > self.batch_size:
             experiences = self.memory.sample(self.batch_size)
             self.learn(experiences)
 
         if done:
-            self.reset_episode_vars()
             # Write episode stats
             self.write_stats([self.episode_num, self.total_reward])
             self.episode_num += 1
+            self.reset_episode_vars()
 
         self.last_state = state
         self.last_action = action
