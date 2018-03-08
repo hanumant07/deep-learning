@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 
 from replay_buffer import ReplayBuffer
+from ounoise import Ounoise
 from quad_controller_rl.agents.base_agent import DDPG
 from keras import layers, models, optimizers
 from keras import backend as K
@@ -135,6 +136,9 @@ class DDPG(BaseAgent):
     def __init__(self, task):
         # Task (environment) information
         self.task = task  # should contain observation_space and action_space
+
+        self.state_size = 3
+        self.action_size = 3
         # Actor (Policy) Model
         self.action_low = self.task.action_space.low
         self.action_high = self.task.action_space.high
