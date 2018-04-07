@@ -1,18 +1,32 @@
 import os
-import argparse
 import subprocess
+import zipfile
 
-parser = argparse.ArgumentParser(description='Kaggle competition setup.')
-parser.add_argument('name', type=str, help='Provide kaggle competition name')
-results = parser.parse_args()
 
-competition = results.name
-KAGGLE_CMD = 'kaggle competitions download -c ' + competition
+class KaggleSetup():
+    def __init__(self, competition, data_path):
+        if os.path.isfile(data_path):
+            raise Exception('data path is a file')
+        # if not os.path.isdir(data_path):
+        #    os.makedirs(data_path)
+        self.data_path = data_path
+        # self.kaggle_cmd = "kg download -u {} -p {} -c {}".format(uname, pswd, competition)
+        self.kaggle_cmd = 'kaggle competitions download -c {} -p {}'.format(competition, data_path)
+        # self.kaggle_download = 'kg download -u '
 
-FASTAI_PATH = '/home/ubuntu/fastai/fastai/'
-
-DATA_PATH = '/home/ubuntu/.kaggle/competitions/' + competition + '/'
-
-subprocess.run(KAGGLE_CMD, shell=True, check=True)
-os.symlink(FASTAI_PATH, 'fastai')
-os.symlink(DATA_PATH, 'data')
+    def download(self):
+        if not os.path.isdir(self.data_path):
+            os.makedirs(data_path)
+        # cwd = os.getcwd()
+        # os.chdir(self.data_path)
+        # subprocess.run(self.kaggle_cmd, shell=True, check=True)
+        subprocess.run(self.kaggle_cmd, shell=True, check=True)
+        # os.chdir(cwd)
+    def unzip_all(self):
+        for folders, subfolders, files in os.walk(self.data_path):
+            for file in files:
+                if not file.endswith('.zip'):
+                    continue
+                # TODO display progress bar
+                unzip = zipfile.ZipFile(os.path.join(self.data_path, file))
+                unzip.extractall(self.data_path)
